@@ -1,3 +1,5 @@
+<div align="center">
+
 # 🎬 КиноДашборд
 
 **Учёт просмотренных фильмов на стыке корпоративной системы и веб-аналитики**
@@ -12,6 +14,8 @@
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 [![Веб-дашборд КиноДашборд](docs/screenshots/00-dashboard.png)](docs/screenshots/00-dashboard.png)
+
+</div>
 
 ---
 
