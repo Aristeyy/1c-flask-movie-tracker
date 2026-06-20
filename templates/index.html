@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>КиноДашборд — персональная медиатека</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Bebas+Neue&family=Manrope:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#0b0907; --bg-2:#100c09; --ink:#070504;
+  --surface:#15110d; --surface-2:#1d1812; --surface-3:#251e16;
+  --line:#2e261d; --line-soft:rgba(212,165,108,0.16);
+  --text:#f4ece0; --text-2:#c9bba6; --text-dim:#8f8170;
+  --gold:#d4a56c; --gold-hi:#f2cf99; --gold-deep:#a6713c; --copper:#bd6433;
+  --gold-grad:linear-gradient(135deg,#f2cf99,#d4a56c 50%,#bd6433);
+  --gold-line:linear-gradient(90deg,transparent,var(--gold-deep),var(--gold-hi),var(--gold-deep),transparent);
+  --good:#8bbf86; --bad:#cf6a55;
+  --r:20px; --r-lg:26px; --r-sm:13px;
+  --serif:'Cormorant Garamond',Georgia,serif;
+  --sans:'Manrope',sans-serif;
+  --display:'Bebas Neue',sans-serif;
+  --sh:0 30px 70px -34px rgba(0,0,0,.85);
+  --sh-gold:0 0 0 1px var(--line-soft),0 30px 80px -40px rgba(189,100,51,.5);
+}
+[data-theme="light"]{
+  --bg:#f1e9dc; --bg-2:#e9dfce; --ink:#fffdf9;
+  --surface:#fffdf8; --surface-2:#f7efe1; --surface-3:#efe4d2;
+  --line:#e3d6c0; --line-soft:rgba(166,113,60,.2);
+  --text:#2c2114; --text-2:#5f5343; --text-dim:#8a7c69;
+  --gold:#a6713c; --gold-hi:#c8954f; --gold-deep:#8a5a2e; --copper:#a85128;
+  --gold-grad:linear-gradient(135deg,#c8954f,#a6713c 50%,#8a5a2e);
+  --good:#5f9a5a; --bad:#bb5340;
+  --sh:0 30px 70px -38px rgba(120,80,30,.4);
+  --sh-gold:0 0 0 1px var(--line-soft),0 30px 80px -42px rgba(166,113,60,.35);
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+::selection{background:var(--gold);color:var(--ink);}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--sans);
+  min-height:100vh;
+  padding-bottom:90px;
+  line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+  transition:background .5s,color .5s;
+  position:relative;
+}
+/* атмосфера: верхний прожектор + виньетка + плёночное зерно */
+body::before{
+  content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(120% 80% at 50% -20%, rgba(212,165,108,.14), transparent 55%),
+    radial-gradient(60% 50% at 100% 0%, rgba(189,100,51,.10), transparent 60%),
+    radial-gradient(80% 60% at 0% 100%, rgba(212,165,108,.06), transparent 60%),
+    linear-gradient(180deg,var(--bg),var(--bg-2));
+}
+body::after{
+  content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.05;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+.wrap{max-width:1180px;margin:0 auto;padding:0 28px;position:relative;z-index:1;}
+
+@keyframes rise{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
+.reveal{animation:rise .6s cubic-bezier(.2,.7,.2,1) both;}
+
+/* ===================== HERO / ШАПКА ===================== */
+header{padding:46px 0 0;position:relative;}
+.topbar{display:flex;justify-content:space-between;align-items:center;gap:18px;flex-wrap:wrap;}
+.brand{display:flex;align-items:center;gap:18px;}
+.brand .seal{
+  width:52px;height:52px;border-radius:50%;flex-shrink:0;
+  border:1px solid var(--line-soft);
+  background:radial-gradient(circle at 35% 30%,rgba(242,207,153,.25),transparent 60%),var(--surface-2);
+  display:flex;align-items:center;justify-content:center;font-size:1.4rem;
+  box-shadow:inset 0 0 20px -8px rgba(212,165,108,.5);
+}
+.brand .mark{font-family:var(--display);font-size:2.1rem;letter-spacing:3px;line-height:.85;}
+.brand .mark b{background:var(--gold-grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+.brand .sub{font-size:.62rem;letter-spacing:4px;text-transform:uppercase;color:var(--text-dim);margin-top:5px;}
+.actions{display:flex;gap:9px;flex-wrap:wrap;}
+
+button,.btn{
+  font-family:var(--sans);font-weight:600;font-size:.78rem;letter-spacing:.3px;
+  border:1px solid var(--line);background:var(--surface-2);color:var(--text-2);
+  padding:10px 17px;border-radius:50px;cursor:pointer;
+  transition:all .25s cubic-bezier(.2,.7,.2,1);
+  display:inline-flex;align-items:center;gap:7px;
+}
+button:hover,.btn:hover{color:var(--gold-hi);border-color:var(--line-soft);transform:translateY(-2px);box-shadow:0 10px 26px -14px rgba(212,165,108,.6);}
+button:active,.btn:active{transform:translateY(0);}
+.btn-primary{background:var(--gold-grad);border:none;color:var(--ink);font-weight:700;box-shadow:0 8px 24px -10px rgba(212,165,108,.7);}
+.btn-primary:hover{color:var(--ink);filter:brightness(1.06);box-shadow:0 14px 34px -10px rgba(212,165,108,.85);}
+
+/* большая редакторская строка-заголовок */
+.hero-line{
+  margin:42px 0 8px;
+  font-family:var(--serif);font-weight:500;font-style:italic;
+  font-size:clamp(2rem,5vw,3.4rem);line-height:1.05;color:var(--text);
+  letter-spacing:-.5px;max-width:760px;
+}
+.hero-line em{font-style:italic;background:var(--gold-grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+.hero-sub{color:var(--text-dim);font-size:.95rem;max-width:540px;margin-bottom:40px;}
+.rule{height:1px;background:var(--gold-line);opacity:.6;margin:0 0 38px;}
+
+/* нумерованный заголовок секции */
+.sec-head{display:flex;align-items:baseline;gap:14px;margin:0 0 20px;}
+.sec-head .no{font-family:var(--serif);font-style:italic;font-size:1rem;color:var(--gold);min-width:34px;}
+.sec-head .ti{font-size:.72rem;letter-spacing:3px;text-transform:uppercase;color:var(--text-2);font-weight:700;}
+.sec-head .ln{flex:1;height:1px;background:linear-gradient(90deg,var(--line),transparent);}
+
+/* ===================== КАРТОЧКИ ===================== */
+.grid{display:grid;gap:22px;}
+.card{
+  background:linear-gradient(180deg,var(--surface),var(--surface) 60%,var(--surface-2));
+  border:1px solid var(--line);border-radius:var(--r-lg);
+  padding:26px;position:relative;overflow:hidden;box-shadow:var(--sh);
+  transition:transform .3s cubic-bezier(.2,.7,.2,1),box-shadow .3s,border-color .3s;
+}
+.card::before{content:"";position:absolute;inset:0 0 auto 0;height:1px;background:var(--gold-line);opacity:.35;}
+.card:hover{transform:translateY(-4px);box-shadow:var(--sh-gold);border-color:var(--line-soft);}
+.card-title{font-size:.68rem;letter-spacing:2.5px;text-transform:uppercase;color:var(--text-dim);margin:0 0 18px;font-weight:700;display:flex;align-items:center;gap:10px;}
+.card-title::before{content:"";width:16px;height:1.5px;background:var(--gold-grad);}
+
+/* статы — крупные засечки, разделители-волоски */
+.stat-row{display:grid;grid-template-columns:repeat(4,1fr);background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);overflow:hidden;box-shadow:var(--sh);}
+.stat{padding:30px 22px;text-align:center;position:relative;transition:background .3s;}
+.stat+.stat::before{content:"";position:absolute;left:0;top:22%;bottom:22%;width:1px;background:var(--line);}
+.stat:hover{background:var(--surface-2);}
+.stat .num{font-family:var(--serif);font-weight:600;font-size:3rem;line-height:.9;letter-spacing:-1px;}
+.stat .num.accent{background:var(--gold-grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+.stat .lbl{font-size:.62rem;letter-spacing:2.5px;text-transform:uppercase;color:var(--text-dim);margin-top:12px;}
+
+/* рекомендации */
+.recom{display:none;position:relative;overflow:hidden;background:linear-gradient(110deg,var(--surface-2),var(--surface));border:1px solid var(--line);border-radius:var(--r-lg);padding:24px 28px 24px 32px;margin-bottom:22px;box-shadow:var(--sh);}
+.recom::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--gold-grad);}
+.recom::after{content:"✦";position:absolute;right:22px;top:18px;color:var(--gold);opacity:.4;font-size:1.4rem;}
+.recom h3{font-family:var(--serif);font-style:italic;font-weight:600;margin:0 0 6px;font-size:1.4rem;color:var(--text);}
+.recom p{margin:0;color:var(--text-2);font-size:.92rem;}
+.recom b{color:var(--gold-hi);font-weight:600;}
+
+/* цель */
+.goal-head{display:flex;justify-content:space-between;align-items:center;}
+.goal-num{font-family:var(--serif);}
+.goal-num .big{font-size:2.8rem;font-weight:600;letter-spacing:-1px;background:var(--gold-grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+.stepper{display:flex;gap:6px;}
+.stepper button{width:33px;height:33px;padding:0;justify-content:center;border-radius:11px;font-size:1rem;}
+.bar{height:8px;background:var(--surface-3);border-radius:50px;overflow:hidden;margin-top:18px;box-shadow:inset 0 1px 4px rgba(0,0,0,.4);}
+.bar>div{height:100%;background:var(--gold-grad);border-radius:50px;width:0;transition:width .8s cubic-bezier(.2,.7,.2,1);box-shadow:0 0 16px rgba(212,165,108,.6);}
+
+/* toolbar / поиск / пилюли */
+.toolbar{display:flex;gap:12px;flex-wrap:wrap;align-items:center;}
+.search{flex:1;min-width:240px;position:relative;}
+.search input{width:100%;background:var(--surface-2);border:1px solid var(--line);color:var(--text);padding:13px 18px 13px 44px;border-radius:50px;font-size:.9rem;font-family:inherit;transition:border-color .25s,box-shadow .25s;}
+.search input::placeholder{color:var(--text-dim);}
+.search input:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 4px rgba(212,165,108,.13);}
+.search::before{content:"⌕";position:absolute;left:17px;top:50%;transform:translateY(-50%);color:var(--gold);font-size:1.2rem;}
+.pill{background:var(--surface-2);border:1px solid var(--line);color:var(--text-dim);padding:8px 17px;border-radius:50px;cursor:pointer;font-weight:600;font-size:.8rem;transition:all .22s;}
+.pill:hover{color:var(--text);border-color:var(--line-soft);transform:translateY(-1px);}
+.pill.active{background:var(--gold-grad);border-color:transparent;color:var(--ink);box-shadow:0 6px 18px -8px rgba(212,165,108,.7);}
+
+/* таблица */
+table{width:100%;border-collapse:collapse;}
+thead th{text-align:left;font-size:.64rem;letter-spacing:2px;text-transform:uppercase;color:var(--text-dim);padding:0 16px 18px;font-weight:700;cursor:pointer;user-select:none;transition:color .2s;}
+thead th:hover{color:var(--gold);}
+tbody tr{border-top:1px solid var(--line);transition:background .2s;}
+tbody tr:hover{background:var(--surface-2);}
+tbody td{padding:17px 16px;font-size:.93rem;}
+.film-name{font-family:var(--serif);font-size:1.18rem;font-weight:600;cursor:pointer;transition:color .2s;}
+.film-name:hover{color:var(--gold-hi);}
+.tag{display:inline-block;background:var(--surface-3);border:1px solid var(--line);color:var(--text-2);padding:4px 13px;border-radius:50px;font-size:.76rem;cursor:pointer;transition:all .2s;}
+.tag:hover{border-color:var(--gold);color:var(--gold-hi);}
+.star{color:var(--gold);}
+.row-actions{opacity:0;transition:opacity .2s;white-space:nowrap;}
+tbody tr:hover .row-actions{opacity:1;}
+.icon-btn{padding:5px 9px;font-size:.95rem;border-radius:9px;}
+.chip-filter{display:none;background:var(--gold-grad);color:var(--ink);border:none;padding:7px 16px;border-radius:50px;cursor:pointer;font-weight:700;font-size:.78rem;box-shadow:0 6px 18px -8px rgba(212,165,108,.7);}
+
+/* модалка */
+.overlay{display:none;position:fixed;inset:0;background:rgba(7,5,4,.82);z-index:50;backdrop-filter:blur(10px) saturate(120%);}
+.overlay.open{display:flex;align-items:center;justify-content:center;padding:24px;animation:fade .3s ease;}
+@keyframes fade{from{opacity:0;}to{opacity:1;}}
+.modal{background:linear-gradient(180deg,var(--surface),var(--surface-2));background-image:radial-gradient(ellipse 100% 50% at 50% 0%,rgba(212,165,108,.08),transparent 70%);border:1px solid var(--line-soft);border-radius:var(--r-lg);max-width:800px;width:100%;max-height:90vh;overflow-y:auto;padding:36px;animation:pop .35s cubic-bezier(.34,1.4,.64,1);box-shadow:0 50px 100px -30px rgba(0,0,0,.85);}
+@keyframes pop{from{transform:scale(.93) translateY(14px);opacity:0;}to{transform:scale(1) translateY(0);opacity:1;}}
+.modal-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;gap:16px;}
+.modal-head h2{font-family:var(--serif);font-weight:600;margin:0;font-size:2.3rem;letter-spacing:-.5px;line-height:1.05;}
+.close-x{background:none;border:none;font-size:1.3rem;padding:4px 11px;border-radius:50%;flex-shrink:0;}
+.modal-body{display:grid;grid-template-columns:220px 1fr;gap:30px;}
+@media(max-width:640px){.modal-body{grid-template-columns:1fr;}}
+.poster{width:100%;border-radius:var(--r-sm);border:1px solid var(--line-soft);display:block;box-shadow:0 26px 60px -22px rgba(0,0,0,.85);}
+.poster-ph{width:100%;aspect-ratio:2/3;border-radius:var(--r-sm);background:var(--surface-3);display:flex;align-items:center;justify-content:center;color:var(--text-dim);font-size:2.6rem;border:1px dashed var(--line);}
+.meta{color:var(--text-dim);font-size:.88rem;margin-bottom:18px;line-height:1.9;}
+.meta b{color:var(--text);font-weight:600;}
+.plot{color:var(--text-2);line-height:1.8;font-size:1.05rem;font-family:var(--serif);}
+textarea{width:100%;background:var(--surface-3);border:1px solid var(--line);color:var(--text);border-radius:var(--r-sm);padding:14px;font-family:inherit;font-size:.9rem;resize:vertical;margin-top:8px;transition:border-color .25s,box-shadow .25s;}
+textarea:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 4px rgba(212,165,108,.13);}
+.spinner{width:38px;height:38px;border:2px solid var(--line);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite;margin:40px auto;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* форма */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:15px;}
+.form-grid .full{grid-column:1/-1;}
+.form-grid input,.form-grid select{width:100%;background:var(--surface-3);border:1px solid var(--line);color:var(--text);padding:12px 15px;border-radius:var(--r-sm);font-family:inherit;font-size:.9rem;transition:border-color .25s,box-shadow .25s;}
+.form-grid input:focus,.form-grid select:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 4px rgba(212,165,108,.13);}
+label.fld{font-size:.66rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-dim);display:block;margin-bottom:7px;}
+
+/* heatmap */
+.heat{display:flex;gap:9px;}
+.heat .cell{flex:1;aspect-ratio:1;border-radius:14px;background:var(--surface-3);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:.7rem;color:var(--text-dim);position:relative;transition:transform .2s,box-shadow .2s;cursor:default;border:1px solid transparent;}
+.heat .cell:hover{transform:translateY(-4px) scale(1.04);box-shadow:0 14px 30px -14px rgba(212,165,108,.6);border-color:var(--line-soft);}
+.heat .cell .d{font-weight:700;font-size:.78rem;}
+
+/* toast */
+#toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%) translateY(150%);background:var(--gold-grad);color:var(--ink);padding:15px 30px;border-radius:50px;font-weight:700;z-index:100;transition:transform .45s cubic-bezier(.34,1.4,.64,1);box-shadow:0 18px 46px -14px rgba(212,165,108,.75);}
+#toast.show{transform:translateX(-50%) translateY(0);}
+
+.empty{text-align:center;padding:48px;color:var(--text-dim);font-family:var(--serif);font-style:italic;font-size:1.15rem;}
+.hide{display:none !important;}
+
+::-webkit-scrollbar{width:11px;height:11px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--line);border-radius:50px;border:3px solid var(--bg);}
+::-webkit-scrollbar-thumb:hover{background:var(--gold-deep);}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="reveal">
+    <div class="topbar">
+      <div class="brand">
+        <div class="seal">🎞</div>
+        <div>
+          <div class="mark">КИНО<b>·</b>ДАШБОРД</div>
+          <div class="sub">персональная медиатека</div>
+        </div>
+      </div>
+      <div class="actions">
+        <button onclick="getRandomMovie()">🎲 Рулетка</button>
+        <button onclick="openAddModal()">＋ Добавить</button>
+        <button onclick="toggleTheme()">🌗 Тема</button>
+        <div style="position:relative">
+          <button onclick="document.getElementById('importMenu').classList.toggle('hide')">⇅ Данные ▾</button>
+          <div id="importMenu" class="hide card" style="position:absolute;right:0;top:48px;z-index:30;padding:12px;min-width:215px;">
+            <button style="width:100%;justify-content:flex-start;margin-bottom:7px;" onclick="location.href='/api/export/csv'">⤓ Экспорт в CSV</button>
+            <button style="width:100%;justify-content:flex-start;margin-bottom:7px;" onclick="location.href='/api/export/json'">⤓ Бэкап JSON</button>
+            <button style="width:100%;justify-content:flex-start;" onclick="document.getElementById('csvInput').click()">⤒ Импорт CSV</button>
+            <input type="file" id="csvInput" accept=".csv" class="hide" onchange="importCsv(this)">
+          </div>
+        </div>
+        <button class="btn-primary" onclick="loadData()">↻ Обновить</button>
+      </div>
+    </div>
+
+    <h1 class="hero-line">Ваша личная <em>фильмотека</em> — каждый просмотр на счету.</h1>
+    <p class="hero-sub">Коллекция, оценки, настроение и статистика в одном кинематографичном пространстве.</p>
+    <div class="rule"></div>
+  </header>
+
+  <div id="recom" class="recom reveal">
+    <h3>Персональный фокус</h3>
+    <p id="recom-text"></p>
+  </div>
+
+  <div class="sec-head reveal"><span class="no">01</span><span class="ti">Обзор коллекции</span><span class="ln"></span></div>
+  <div class="grid reveal" style="grid-template-columns:2fr 1fr;margin-bottom:34px;">
+    <div class="stat-row">
+      <div class="stat"><div class="num" id="s-total">0</div><div class="lbl">Просмотрено</div></div>
+      <div class="stat"><div class="num accent" id="s-avg">0.0</div><div class="lbl">Ср. оценка</div></div>
+      <div class="stat"><div class="num" id="s-genre" style="font-size:1.5rem;padding-top:14px;">—</div><div class="lbl">Топ-жанр</div></div>
+      <div class="stat"><div class="num" id="s-hours">0</div><div class="lbl">Часов</div></div>
+    </div>
+    <div class="card">
+      <div class="goal-head">
+        <p class="card-title" style="margin:0;">Цель на месяц</p>
+        <div class="stepper">
+          <button onclick="changeGoal(-1)">−</button>
+          <button onclick="changeGoal(1)">＋</button>
+        </div>
+      </div>
+      <div class="goal-num" style="margin-top:12px;">
+        <span class="big" id="g-cur">0</span>
+        <span style="color:var(--text-dim)"> / </span>
+        <span style="color:var(--text-dim);font-size:1.5rem;" id="g-goal">10</span>
+      </div>
+      <div class="bar"><div id="g-bar"></div></div>
+    </div>
+  </div>
+
+  <div class="sec-head reveal"><span class="no">02</span><span class="ti">Аналитика</span><span class="ln"></span></div>
+  <div class="grid reveal" style="grid-template-columns:1fr 1.4fr;margin-bottom:22px;">
+    <div class="card"><p class="card-title">Распределение жанров</p><canvas id="genreChart" style="max-height:240px;"></canvas></div>
+    <div class="card"><p class="card-title">Динамика средних оценок</p><canvas id="monthChart" style="max-height:240px;"></canvas></div>
+  </div>
+  <div class="card reveal" style="margin-bottom:34px;">
+    <p class="card-title">Активность по дням недели</p>
+    <div class="heat" id="heat"></div>
+  </div>
+
+  <div class="sec-head reveal"><span class="no">03</span><span class="ti">Журнал просмотров</span><span class="ln"></span></div>
+  <div class="card reveal" style="margin-bottom:18px;">
+    <div class="toolbar">
+      <span class="card-title" style="margin:0;">Настроение</span>
+      <button class="pill active" id="emo-all" onclick="filterByEmotion('all')">Все</button>
+      <span id="emo-pills" style="display:flex;gap:8px;flex-wrap:wrap;"></span>
+    </div>
+  </div>
+  <div class="card reveal">
+    <div class="toolbar" style="margin-bottom:22px;">
+      <div class="search"><input id="searchInput" placeholder="Поиск по названию, жанру, заметке…" oninput="applyFilters()"></div>
+      <button id="genreChip" class="chip-filter" onclick="resetGenre()">Жанр: <span id="genreChipName"></span> ✕</button>
+    </div>
+    <div style="overflow-x:auto;">
+      <table>
+        <thead>
+          <tr>
+            <th onclick="sortBy('film')">Фильм <span id="i-film"></span></th>
+            <th onclick="sortBy('genre')">Жанр <span id="i-genre"></span></th>
+            <th onclick="sortBy('rating')">Оценка <span id="i-rating"></span></th>
+            <th onclick="sortBy('date')">Дата <span id="i-date"></span></th>
+            <th>Эмоция</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="tbody"><tr><td colspan="6" class="empty">Загрузка данных…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="movieOverlay" onclick="if(event.target===this)closeModal('movieOverlay')">
+  <div class="modal">
+    <div class="modal-head">
+      <h2 id="m-title">…</h2>
+      <button class="close-x" onclick="closeModal('movieOverlay')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div>
+        <div id="m-spinner" class="spinner"></div>
+        <img id="m-poster" class="poster hide" alt="постер">
+        <div id="m-poster-ph" class="poster-ph hide">🎞</div>
+        <button class="btn" style="width:100%;justify-content:center;margin-top:12px;" onclick="document.getElementById('posterUpload').click()">⤒ Свой постер</button>
+        <input type="file" id="posterUpload" accept="image/*" class="hide" onchange="uploadPoster(this)">
+      </div>
+      <div>
+        <div id="m-meta" class="meta"></div>
+        <p id="m-plot" class="plot">Загрузка метаданных…</p>
+        <div style="margin-top:22px;">
+          <label class="fld">Личная заметка</label>
+          <textarea id="m-note" rows="3" placeholder="Что запомнилось…"></textarea>
+          <div style="display:flex;gap:10px;margin-top:12px;">
+            <button class="btn-primary" onclick="saveNote()">💾 Сохранить заметку</button>
+            <a id="m-trailer" class="btn hide" target="_blank">▶ Трейлер</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="addOverlay" onclick="if(event.target===this)closeModal('addOverlay')">
+  <div class="modal" style="max-width:580px;">
+    <div class="modal-head">
+      <h2>Новый просмотр</h2>
+      <button class="close-x" onclick="closeModal('addOverlay')">✕</button>
+    </div>
+    <div class="form-grid">
+      <div class="full"><label class="fld">Название</label><input id="f-film" placeholder="Например, Interstellar"></div>
+      <div><label class="fld">Жанр</label><input id="f-genre" placeholder="Драма"></div>
+      <div><label class="fld">Оценка (1–10)</label><input id="f-rating" type="number" min="1" max="10" value="8"></div>
+      <div><label class="fld">Дата</label><input id="f-date" type="date"></div>
+      <div><label class="fld">Эмоция</label>
+        <select id="f-emotion">
+          <option value="😍">😍 Восторг</option>
+          <option value="🙂">🙂 Понравилось</option>
+          <option value="😐">😐 Нейтрально</option>
+          <option value="😢">😢 Тронуло</option>
+          <option value="😴">😴 Скучно</option>
+        </select>
+      </div>
+      <div class="full"><label class="fld">Заметка</label><input id="f-note" placeholder="Необязательно"></div>
+    </div>
+    <button class="btn-primary" style="width:100%;justify-content:center;margin-top:20px;" onclick="submitNew()">Добавить в медиатеку</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+
+let allMovies = [], filtered = [];
+let activeGenre = 'all', activeEmotion = 'all';
+let sortCol = null, sortAsc = true;
+let goal = parseInt(localStorage.getItem('movieGoal')) || 10;
+let genreChart = null, monthChart = null;
+let currentMovieId = null;
+
+if (localStorage.getItem('theme') === 'light') document.documentElement.setAttribute('data-theme', 'light');
+
+function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2400);
+}
+function toggleTheme() {
+    const cur = document.documentElement.getAttribute('data-theme');
+    const next = cur === 'light' ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    drawCharts(filtered);
+}
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+async function loadData() {
+    try {
+        const [mv, rc, st] = await Promise.all([
+            fetch('/api/movies'), fetch('/api/recommend'), fetch('/api/stats')
+        ]);
+        allMovies = await mv.json();
+        buildEmotions(allMovies);
+        updateStats(await st.json());
+        applyFilters();
+        drawCharts(allMovies);
+        updateRecom(rc.ok ? await rc.json() : null);
+    } catch (e) { console.error(e); toast('Ошибка загрузки'); }
+}
+
+function buildEmotions(movies) {
+    const set = new Set();
+    movies.forEach(m => { if (m.emotion) set.add(m.emotion.trim()); });
+    document.getElementById('emo-pills').innerHTML = [...set].map(e =>
+        `<button class="pill" id="emo-${e}" onclick="filterByEmotion('${e}')">${e}</button>`).join('');
+}
+
+function applyFilters() {
+    const q = document.getElementById('searchInput').value.toLowerCase().trim();
+    filtered = allMovies.filter(m => {
+        const g = activeGenre === 'all' || (m.genre && m.genre.toLowerCase() === activeGenre.toLowerCase());
+        const e = activeEmotion === 'all' || (m.emotion && m.emotion.trim() === activeEmotion);
+        const s = !q || [m.film, m.genre, m.note].some(v => (v || '').toLowerCase().includes(q));
+        return g && e && s;
+    });
+    if (sortCol) doSort(false);
+    renderTable();
+    updateGoal();
+}
+
+function filterByGenre(g) {
+    activeGenre = g;
+    document.getElementById('genreChip').style.display = 'inline-flex';
+    document.getElementById('genreChipName').textContent = g;
+    applyFilters();
+}
+function resetGenre() { activeGenre = 'all'; document.getElementById('genreChip').style.display = 'none'; applyFilters(); }
+
+function filterByEmotion(e) {
+    activeEmotion = e;
+    document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+    document.getElementById(e === 'all' ? 'emo-all' : `emo-${e}`)?.classList.add('active');
+    applyFilters();
+}
+
+function sortBy(col) {
+    if (sortCol === col) sortAsc = !sortAsc; else { sortCol = col; sortAsc = true; }
+    ['film','genre','rating','date'].forEach(c => document.getElementById('i-'+c).textContent = '');
+    document.getElementById('i-'+col).textContent = sortAsc ? '▲' : '▼';
+    doSort(true);
+}
+function doSort(render) {
+    filtered.sort((a, b) => {
+        let x = a[sortCol] ?? '', y = b[sortCol] ?? '';
+        if (typeof x === 'string') x = x.toLowerCase();
+        if (typeof y === 'string') y = y.toLowerCase();
+        return x < y ? (sortAsc ? -1 : 1) : x > y ? (sortAsc ? 1 : -1) : 0;
+    });
+    if (render) renderTable();
+}
+
+function renderTable() {
+    const tb = document.getElementById('tbody');
+    if (!filtered.length) { tb.innerHTML = '<tr><td colspan="6" class="empty">Ничего не найдено.</td></tr>'; return; }
+    tb.innerHTML = filtered.map(m => `
+        <tr>
+            <td class="film-name" onclick="openMovie(${m.id}, '${esc(m.film)}')">${m.film || '—'}</td>
+            <td>${m.genre ? `<span class="tag" onclick="filterByGenre('${esc(m.genre)}')">${m.genre}</span>` : '—'}</td>
+            <td><span class="star">★</span> ${m.rating || 0}/10</td>
+            <td style="color:var(--text-dim)">${m.date || '—'}</td>
+            <td style="font-size:1.2rem">${m.emotion || '—'}</td>
+            <td><span class="row-actions">
+                <button class="icon-btn" title="Удалить" onclick="delMovie(${m.id})">🗑</button>
+            </span></td>
+        </tr>`).join('');
+}
+function esc(s) { return (s || '').replace(/'/g, "\\'"); }
+
+function updateStats(s) {
+    document.getElementById('s-total').textContent = s.total;
+    document.getElementById('s-avg').textContent = (s.avg_rating || 0).toFixed(1);
+    const top = Object.entries(s.by_genre || {}).sort((a,b)=>b[1]-a[1])[0];
+    document.getElementById('s-genre').textContent = top ? top[0] : '—';
+    document.getElementById('s-hours').textContent = Math.round(s.total * 1.8);
+    drawHeat(s.by_weekday || [0,0,0,0,0,0,0]);
+}
+
+function drawHeat(week) {
+    const days = ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
+    const max = Math.max(...week, 1);
+    document.getElementById('heat').innerHTML = days.map((d, i) => {
+        const op = 0.12 + 0.88 * (week[i] / max);
+        const bg = week[i] ? `background:rgba(224,160,78,${op.toFixed(2)}); color:#1a1410;` : '';
+        return `<div class="cell" style="${bg}"><span class="d">${d}</span><span>${week[i]}</span></div>`;
+    }).join('');
+}
+
+function updateRecom(d) {
+    const block = document.getElementById('recom');
+    if (d && d.favorite_genre && d.recommendations.length) {
+        block.style.display = 'block';
+        const list = d.recommendations.map(m => `<b>«${m.film}»</b>`).join(', ');
+        document.getElementById('recom-text').innerHTML =
+            `Ваш любимый жанр — <b>${d.favorite_genre}</b>. Стоит пересмотреть: ${list}`;
+    } else block.style.display = 'none';
+}
+
+function changeGoal(d) { goal = Math.max(1, goal + d); localStorage.setItem('movieGoal', goal); updateGoal(); }
+function updateGoal() {
+    const n = allMovies.length;
+    document.getElementById('g-cur').textContent = n;
+    document.getElementById('g-goal').textContent = goal;
+    document.getElementById('g-bar').style.width = Math.min(100, n / goal * 100) + '%';
+}
+
+function getRandomMovie() {
+    if (!allMovies.length) return toast('Нет фильмов');
+    const m = allMovies[Math.floor(Math.random() * allMovies.length)];
+    openMovie(m.id, m.film);
+}
+
+async function openMovie(id, name) {
+    currentMovieId = id;
+    const ov = document.getElementById('movieOverlay');
+    ov.classList.add('open');
+    const local = allMovies.find(m => m.id === id) || {};
+
+    // Сброс состояния модалки (как в оригинале)
+    document.getElementById('m-title').textContent = name;
+    document.getElementById('m-note').value = local.note || '';
+    document.getElementById('m-spinner').classList.remove('hide');
+    document.getElementById('m-poster').classList.add('hide');
+    document.getElementById('m-poster-ph').classList.add('hide');
+    document.getElementById('m-trailer').classList.add('hide');
+    document.getElementById('m-meta').textContent = '';
+    document.getElementById('m-plot').textContent = 'Загрузка расширенных метаданных…';
+
+    try {
+        const res = await fetch(`/api/fill?name=${encodeURIComponent(name)}`);
+        const d = await res.json();
+        document.getElementById('m-spinner').classList.add('hide');
+
+        if (d.error) {
+            document.getElementById('m-plot').textContent = d.error;
+            // fallback: показать локальный постер, если он есть
+            if (local.poster) showPoster(local.poster);
+            else document.getElementById('m-poster-ph').classList.remove('hide');
+            return;
+        }
+
+        document.getElementById('m-title').textContent = d.title;
+        document.getElementById('m-meta').innerHTML =
+            `Год: <b>${d.year}</b> · Режиссёр: <b>${d.director}</b> · IMDb: <b>★ ${d.imdb_rating}</b>`;
+        document.getElementById('m-plot').textContent = d.plot;
+
+        // Постер: приоритет у OMDB (оригинальное поведение), иначе локальный, иначе плейсхолдер
+        if (d.poster_url && d.poster_url !== 'N/A') {
+            showPoster(d.poster_url);
+        } else if (local.poster) {
+            showPoster(local.poster);
+        } else {
+            document.getElementById('m-poster-ph').classList.remove('hide');
+        }
+
+        if (d.trailer_url) {
+            const t = document.getElementById('m-trailer');
+            t.href = d.trailer_url;
+            t.classList.remove('hide');
+        }
+    } catch (e) {
+        document.getElementById('m-spinner').classList.add('hide');
+        document.getElementById('m-plot').textContent = 'Ошибка сопряжения сетей.';
+        if (local.poster) showPoster(local.poster);
+        else document.getElementById('m-poster-ph').classList.remove('hide');
+    }
+}
+function showPoster(src) {
+    const p = document.getElementById('m-poster');
+    p.src = src;
+    p.classList.remove('hide');
+    document.getElementById('m-poster-ph').classList.add('hide');
+}
+
+async function saveNote() {
+    if (!currentMovieId) return;
+    const note = document.getElementById('m-note').value;
+    await fetch(`/api/movies/${currentMovieId}`, {
+        method: 'PATCH', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ note })
+    });
+    const m = allMovies.find(x => x.id === currentMovieId); if (m) m.note = note;
+    toast('Заметка сохранена');
+}
+
+function uploadPoster(input) {
+    const file = input.files[0]; if (!file || !currentMovieId) return;
+    const reader = new FileReader();
+    reader.onload = async () => {
+        const r = await fetch(`/api/movies/${currentMovieId}/poster`, {
+            method: 'POST', headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ image: reader.result })
+        });
+        const d = await r.json();
+        if (d.status === 'ok') {
+            showPoster(d.poster);
+            const m = allMovies.find(x => x.id === currentMovieId); if (m) m.poster = d.poster;
+            toast('Постер загружен');
+        } else toast('Ошибка загрузки');
+    };
+    reader.readAsDataURL(file);
+}
+
+async function delMovie(id) {
+    if (!confirm('Удалить этот просмотр?')) return;
+    await fetch(`/api/movies/${id}`, { method: 'DELETE' });
+    toast('Запись удалена');
+    loadData();
+}
+
+function openAddModal() {
+    document.getElementById('f-date').value = new Date().toISOString().slice(0,10);
+    document.getElementById('addOverlay').classList.add('open');
+}
+async function submitNew() {
+    const body = {
+        film: document.getElementById('f-film').value.trim(),
+        genre: document.getElementById('f-genre').value.trim(),
+        rating: document.getElementById('f-rating').value,
+        date: document.getElementById('f-date').value,
+        emotion: document.getElementById('f-emotion').value,
+        note: document.getElementById('f-note').value.trim()
+    };
+    if (!body.film) return toast('Укажите название');
+    const r = await fetch('/api/movies', {
+        method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body)
+    });
+    if (r.ok) {
+        closeModal('addOverlay');
+        ['f-film','f-genre','f-note'].forEach(i => document.getElementById(i).value = '');
+        toast('Фильм добавлен');
+        loadData();
+    } else toast('Ошибка');
+}
+
+async function importCsv(input) {
+    const file = input.files[0]; if (!file) return;
+    const fd = new FormData(); fd.append('file', file);
+    const r = await fetch('/api/import/csv', { method: 'POST', body: fd });
+    const d = await r.json();
+    document.getElementById('importMenu').classList.add('hide');
+    input.value = '';
+    if (d.status === 'ok') { toast(`Импортировано: ${d.imported}`); loadData(); }
+    else toast('Ошибка импорта');
+}
+
+function drawCharts(data) {
+    Chart.defaults.font.family = 'Manrope';
+    const dim = getComputedStyle(document.documentElement).getPropertyValue('--text-dim').trim();
+    const grid = getComputedStyle(document.documentElement).getPropertyValue('--border').trim();
+    const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
+
+    const genres = {};
+    data.forEach(m => { if (m.genre) genres[m.genre] = (genres[m.genre] || 0) + 1; });
+    if (genreChart) genreChart.destroy();
+    genreChart = new Chart(document.getElementById('genreChart'), {
+        type: 'doughnut',
+        data: { labels: Object.keys(genres), datasets: [{ data: Object.values(genres),
+            backgroundColor: ['#e0a04e','#c4622d','#84cc8f','#6ba8d9','#b07cc6','#d96b5a'], borderWidth: 0 }] },
+        options: { responsive: true, maintainAspectRatio: false, cutout: '72%',
+            plugins: { legend: { position: 'right', labels: { color: dim, boxWidth: 12, padding: 12 } } } }
+    });
+
+    const months = {};
+    data.forEach(m => {
+        if (m.date) { const k = m.date.substring(0,7); (months[k] ??= { s:0, c:0 }); months[k].s += m.rating; months[k].c++; }
+    });
+    const labels = Object.keys(months).sort();
+    const avgs = labels.map(k => (months[k].s / months[k].c).toFixed(1));
+    if (monthChart) monthChart.destroy();
+    monthChart = new Chart(document.getElementById('monthChart'), {
+        type: 'line',
+        data: { labels, datasets: [{ data: avgs, borderColor: accent, backgroundColor: 'rgba(224,160,78,0.1)',
+            borderWidth: 3, tension: 0.4, fill: true, pointRadius: 4, pointBackgroundColor: accent }] },
+        options: { responsive: true, maintainAspectRatio: false,
+            scales: { y: { min: 0, max: 10, ticks: { color: dim }, grid: { color: grid } },
+                      x: { ticks: { color: dim }, grid: { display: false } } },
+            plugins: { legend: { display: false } } }
+    });
+}
+
+loadData();
+
+</script>
+</body>
+</html>

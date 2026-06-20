@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+env/
+
+# Переменные окружения
+.env
+
+# База данных и пользовательские данные
+movies.db
+static/posters/*
+!static/posters/.gitkeep
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
